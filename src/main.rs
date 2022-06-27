@@ -3,57 +3,43 @@ extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
 
+use std::io::Error;
+use std::time::Duration;
 use clap::{Parser, Subcommand};
-use reqwest::Response;
+use webpage::{Webpage, WebpageOptions};
 
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
+async fn main() -> Result<(), Error> {
     let cli: Cli = Cli::parse();
     match &cli.command {
-        Command::Add { name, r#type } => {
-            println!("type: {}, name: {}", r#type, name);
-        }
-        Command::Info { .. } => todo!(),
-        Command::List { .. } => todo!(),
-        Command::Get { url } => {
-            let response = do_get(url).await?;
-            let status = response.status();
-            println!("Status: {}", status);
+        Command::Info { url } => {
+            let options = WebpageOptions {
+                allow_insecure: true,
+                follow_location: true,
+                max_redirections: 2,
+                timeout: Duration::from_secs(5),
+                ..Default::default()
 
-            eprintln!("Headers: {:#?}\n", response.headers());
-
-            let body = response.text().await?;
-            println!("body={:?}", body);
+            };
+            let info: Webpage = Webpage::from_url(url, options).expect("Halp, could not fetch");
+            let info_json = serde_json::to_string_pretty(&info);
+            match info_json {
+                Ok(json) => println!("{}", json),
+                Err(err) => println!("{}", err),
+            }
         }
     }
     Ok(())
 }
 
-async fn do_get(url: &String) -> reqwest::Result<Response> {
-    reqwest::get(url).await
-}
-
 #[derive(Subcommand)]
 enum Command {
-    #[clap(alias = "a", about = "Add a component")]
-    Add {
-        #[clap()]
-        /// The type of component. Valid values are: alias, func, secret, or tool
-        r#type: String,
-
-        /// The name of the component
-        name: String,
-    },
-
-    #[clap(alias = "g", about = "Get a URL")]
-    Get {
+    /// Prints information about a webpage
+    #[clap(alias = "i")]
+    Info {
+        /// The URL to interrogate
         url: String
     },
-
-    #[clap(alias = "i", about = "Get information about a component")]
-    Info { name: String },
-    #[clap(alias = "l", about = "List all components")]
-    List { name: String },
 }
 
 #[derive(Parser)]

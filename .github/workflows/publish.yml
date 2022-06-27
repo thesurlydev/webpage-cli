@@ -15,16 +15,16 @@ jobs:
         include:
           - name: linux
             os: ubuntu-latest
-            artifact_name: ${{ env.PROJECT_NAME }}
-            asset_name: ${{ env.PROJECT_NAME }}-linux
+            artifact_name: webpage-cli
+            asset_name: webpage-cli-linux
           - name: windows
             os: windows-latest
-            artifact_name: ${{ env.PROJECT_NAME }}.exe
-            asset_name: ${{ env.PROJECT_NAME }}-windows
+            artifact_name: webpage-cli.exe
+            asset_name: webpage-cli-windows
           - name: macos
             os: macos-latest
-            artifact_name: ${{ env.PROJECT_NAME }}
-            asset_name: ${{ env.PROJECT_NAME }}-macos
+            artifact_name: webpage-cli
+            asset_name: webpage-cli-macos
 
     steps:
     - uses: actions/checkout@v1

@@ -2,14 +2,14 @@
 name = "webpage-cli"
 version = "0.1.0"
 description = "Interrogate web pages for information"
-authors = ["shane"]
+authors = ["Shane Witbeck <shane@digitalsanctum.com>"]
 edition = "2021"
 license-file = "LICENSE"
 readme = "README.md"
 homepage = "https://github.com/digitalsanctum/webpage-cli"
 repository = "https://github.com/digitalsanctum/webpage-cli"
-keywords = ["cli", "webpage-cli", "tools", "shell"]
-categories = ["command-line-utilities", "command-line-interface", "utilities"]
+keywords = ["webpage", "webpage-cli", "html", "http", "opengraph"]
+categories = ["command-line-utilities", "web-programming::http-client", "development-tools"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -17,8 +17,8 @@ maintenance = { status = "actively-developed" }
 [dependencies]
 anyhow = "*"
 clap = { version = "3", features = ["derive", "env"] }
-reqwest = { version = "*", features = ["json"] }
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
+webpage = { version ="1", features = ["serde"] }
