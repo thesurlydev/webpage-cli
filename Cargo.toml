@@ -1,6 +1,6 @@
 [package]
 name = "webpage-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "Interrogate web pages for information"
 authors = ["Shane Witbeck <shane@digitalsanctum.com>"]
 edition = "2021"
