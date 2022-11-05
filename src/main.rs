@@ -60,7 +60,7 @@ enum Command {
         /// The URL to interrogate
         url: String,
 
-        /// Fetch content via playwright?
+        /// Fetch content via playwright
         #[arg(short, long, default_value = "false")]
         content: bool,
     },

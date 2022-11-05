@@ -5,8 +5,6 @@ Interrogate web pages for information. Based on the excellent [webpage](https://
 ## Usage
 
 ```shell
-webpage-cli 0.1.0
-Shane Witbeck <shane@digitalsanctum.com>
 Interrogate web pages for information
 
 USAGE:
