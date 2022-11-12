@@ -15,6 +15,7 @@ jobs:
     strategy:
       matrix:
         name: [ "linux", "windows", "macos" ]
+        rust: [stable]
         include:
           - name: linux
             os: ubuntu-latest
@@ -29,13 +30,16 @@ jobs:
             artifact_name: webpage-cli
             asset_name: webpage-cli-macos
 
+    env:
+      RUST_BACKTRACE: full
     steps:
-    - uses: actions/checkout@v1
-
-    - uses: actions-rs/toolchain@v1
+    - uses: actions/checkout@v3
+    - name: Install Rust ${{ matrix.rust }}
+      uses: actions-rs/toolchain@v1
       with:
         profile: minimal
-        toolchain: stable
+        toolchain: ${{ matrix.rust }}
+        components: rustfmt, clippy
 
     - name: Build
       run: cargo build --release --locked
