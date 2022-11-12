@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use clap::{Parser, Subcommand};
 use playwright::Playwright;
+use tokio::join;
 use webpage::{Webpage, WebpageOptions};
 
 use chrono::Local;
@@ -19,57 +20,63 @@ use slugify::slugify;
 async fn main() -> Result<(), Error> {
     let cli: Cli = Cli::parse();
     match &cli.command {
-        Command::Info { url, fetch, dir, .. } => {
-            let url = handle_scheme(url);
-
-            let options = WebpageOptions {
-                allow_insecure: true,
-                follow_location: true,
-                max_redirections: 2,
-                timeout: Duration::from_secs(5),
-                ..Default::default()
-            };
-
-            let info: Webpage =
-                Webpage::from_url(&*url, options).expect("Unable to interrogate URL");
-            let info_json = serde_json::to_string_pretty(&info);
-
-            if *fetch {
-                let fetch_result = fetch_content(&url)
-                    .await
-                    .expect("Error fetching content for ${url}");
-                let url_slug = slugify!(&url, stop_words = "https,http,www");
-                let timestamp = Local::now().format("_%Y-%m-%d-%H%M%S");
-                let file_name = format!("{url_slug}{timestamp}.html");
-
-                let maybe_file = if dir.is_some() {
-                    let dir_str = dir.as_ref().unwrap();
-                    let parent_dir = Path::new(dir_str);
-                    if !parent_dir.exists() {
-                        std::fs::create_dir_all(parent_dir).expect("Error creating directory");
-                    }
-                    let path = parent_dir.join(file_name);
-                    File::create(path)
-                } else {
-                    File::create(file_name)
-                };
-
-                match maybe_file {
-                    Ok(mut file) => {
-                        file.write_all(fetch_result.as_bytes())
-                            .expect("Unable to write data");
-                    }
-                    Err(err) => eprintln!("Error creating file: {}", err),
-                }
-            }
-
-            match info_json {
-                Ok(json) => println!("{}", json),
-                Err(err) => println!("{}", err),
-            }
+        Command::Info {
+            url, fetch, dir, ..
+        } => {
+            let url = handle_scheme(&url);
+            let info = get_info(&url);
+            let content = fetch_content(fetch, &url, dir);
+            join!(info, content);
         }
     }
     Ok(())
+}
+
+async fn get_info(url: &String) {
+    let options = WebpageOptions {
+        allow_insecure: true,
+        follow_location: true,
+        max_redirections: 2,
+        timeout: Duration::from_secs(5),
+        ..Default::default()
+    };
+    let info: Webpage = Webpage::from_url(&*url, options).expect("Unable to interrogate URL");
+    let info_json = serde_json::to_string_pretty(&info);
+    match info_json {
+        Ok(json) => println!("{}", json),
+        Err(err) => println!("{}", err),
+    }
+}
+
+async fn fetch_content(fetch: &bool, url: &str, dir: &Option<String>) {
+    if !fetch {
+        return;
+    }
+    let fetch_result = playwrite_fetch(&url)
+        .await
+        .expect("Error fetching content for ${url}");
+    let url_slug = slugify!(&url, stop_words = "https,http,www");
+    let timestamp = Local::now().format("_%Y-%m-%d-%H%M%S");
+    let file_name = format!("{url_slug}{timestamp}.html");
+    let maybe_file = if dir.is_some() {
+        let dir_str = dir.as_ref().unwrap();
+        let parent_dir = Path::new(dir_str);
+        if !parent_dir.exists() {
+            std::fs::create_dir_all(parent_dir).expect("Error creating directory");
+        }
+        let path = parent_dir.join(file_name);
+        File::create(path)
+    } else {
+        File::create(file_name)
+    };
+
+    match maybe_file {
+        Ok(mut file) => {
+            file.write_all(fetch_result.as_bytes())
+                .expect("Unable to write data");
+        }
+        Err(err) => eprintln!("Error creating file: {}", err),
+    }
 }
 
 /// Ensure url contains scheme
@@ -107,7 +114,7 @@ struct Cli {
 }
 
 /// Using playwright, fetch the content of the URL
-async fn fetch_content(url: &str) -> Result<String, std::sync::Arc<playwright::Error>> {
+async fn playwrite_fetch(url: &str) -> Result<String, std::sync::Arc<playwright::Error>> {
     let playwright = Playwright::initialize().await?;
     playwright.prepare().expect("Error installing browsers"); // Install browsers
     let chromium = playwright.chromium();
