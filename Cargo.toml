@@ -4,6 +4,7 @@ version = "1.0.0"
 description = "Interrogate web pages for information"
 authors = ["Shane Witbeck <shane@digitalsanctum.com>"]
 edition = "2021"
+rust-version = "1.65.0"
 license-file = "LICENSE"
 readme = "README.md"
 homepage = "https://github.com/digitalsanctum/webpage-cli"
@@ -15,10 +16,12 @@ categories = ["command-line-utilities", "web-programming::http-client", "develop
 maintenance = { status = "actively-developed" }
 
 [dependencies]
+chrono = "0.4.19"
 clap = { version = "4", features = ["derive", "env"] }
 playwright = "0.0.20"
 serde = "1"
 serde_derive = "1"
 serde_json = "1"
+slugify = "0.1.0"
 tokio = { version = "1", features = ["full"] }
 webpage = { version = "1", features = ["serde"] }
