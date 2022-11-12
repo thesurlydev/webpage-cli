@@ -25,3 +25,10 @@ serde_json = "1"
 slugify = "0.1.0"
 tokio = { version = "1", features = ["full"] }
 webpage = { version = "1", features = ["serde"] }
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary. Note: causes 'cargo bloat' not to work.
+opt-level = "z"  # Optimize for size.
+lto = true
+codegen-units = 1
+panic = "abort"

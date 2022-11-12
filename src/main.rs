@@ -125,6 +125,7 @@ async fn playwrite_fetch(url: &str) -> Result<String, std::sync::Arc<playwright:
     page.content().await
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
