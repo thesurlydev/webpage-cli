@@ -11,7 +11,7 @@ use std::time::Duration;
 use clap::{Parser, Subcommand};
 use playwright::Playwright;
 use tokio::join;
-use webpage::{Webpage, WebpageOptions};
+use webpage::{HTML, Webpage, WebpageOptions};
 
 use chrono::Local;
 use slugify::slugify;
@@ -21,26 +21,40 @@ async fn main() -> Result<(), Error> {
     let cli: Cli = Cli::parse();
     match &cli.command {
         Command::Info {
-            url, fetch, dir, ..
+            url, fetch, dir, user_agent, verbose, ..
         } => {
+            if *verbose {
+                // print user_agent
+                println!("user_agent: {}", user_agent);
+                // print url
+                println!("url: {}", url);
+            }
             let url = handle_scheme(&url);
-            let info = get_info(&url);
-            let content = fetch_content(fetch, &url, dir);
+            if *verbose {
+                println!("url(1): {}", url);
+            }
+            let info = get_info(&url, &user_agent);
+            let content = fetch_content(fetch, &url, dir, &user_agent);
             join!(info, content);
         }
     }
     Ok(())
 }
 
-async fn get_info(url: &String) {
+async fn get_info(url: &String, user_agent: &String) {
     let options = WebpageOptions {
         allow_insecure: true,
         follow_location: true,
         max_redirections: 2,
         timeout: Duration::from_secs(5),
+        useragent: user_agent.to_owned(),
         ..Default::default()
     };
     let info: Webpage = Webpage::from_url(&*url, options).expect("Unable to interrogate URL");
+
+    // let html: HTML = HTML::from_file("out.html", Some(url.to_owned())).unwrap();
+    
+
     let info_json = serde_json::to_string_pretty(&info);
     match info_json {
         Ok(json) => println!("{}", json),
@@ -48,13 +62,11 @@ async fn get_info(url: &String) {
     }
 }
 
-async fn fetch_content(fetch: &bool, url: &str, dir: &Option<String>) {
+async fn fetch_content(fetch: &bool, url: &str, dir: &Option<String>, user_agent: &String) {
     if !fetch {
         return;
     }
-    let fetch_result = playwrite_fetch(&url)
-        .await
-        .expect("Error fetching content for ${url}");
+    let fetch_result = playwright_fetch(&url, user_agent).await;
     let url_slug = slugify!(&url, stop_words = "https,http,www");
     let timestamp = Local::now().format("_%Y-%m-%d-%H%M%S");
     let file_name = format!("{url_slug}{timestamp}.html");
@@ -93,9 +105,17 @@ enum Command {
     /// Prints information about a webpage
     #[clap(alias = "i")]
     Info {
+        /// User-agent
+        #[arg(short, long, default_value = "Mozilla/5.0 (X11; Linux x86_64; rv:106.0) Gecko/20100101 Firefox/106.0")]
+        user_agent: String,
+
         /// Fetch content via playwright
         #[arg(short, long, default_value = "false")]
         fetch: bool,
+
+        /// Fetch content via playwright
+        #[arg(short, long, default_value = "false")]
+        verbose: bool,
 
         /// Directory to save content
         #[arg(short, long, default_value = "./")]
@@ -114,15 +134,15 @@ struct Cli {
 }
 
 /// Using playwright, fetch the content of the URL
-async fn playwrite_fetch(url: &str) -> Result<String, std::sync::Arc<playwright::Error>> {
-    let playwright = Playwright::initialize().await?;
-    playwright.prepare().expect("Error installing browsers"); // Install browsers
+async fn playwright_fetch(url: &str, user_agent: &String) -> String {
+    let playwright = Playwright::initialize().await.expect("Unable to initialize playwright");
+    playwright.prepare().expect("Error installing browsers");
     let chromium = playwright.chromium();
-    let browser = chromium.launcher().headless(true).launch().await;
-    let context = browser?.context_builder().build().await?;
-    let page = context.new_page().await?;
-    page.goto_builder(url).goto().await?;
-    page.content().await
+    let browser = chromium.launcher().headless(true).launch().await.expect("Unable to launch browser");
+    let context = browser.context_builder().user_agent(user_agent).build().await.expect("Unable to build context");
+    let page = context.new_page().await.expect("Unable to create page");
+    page.goto_builder(url).goto().await.expect("Unable to navigate to page");
+    page.content().await.expect("Unable to get page content")
 }
 
 #[cfg(test)]
