@@ -10,3 +10,6 @@ tmp
 *.html
 cookies
 data
+cookies
+data
+.DS_Store
