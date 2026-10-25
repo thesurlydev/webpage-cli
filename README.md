@@ -207,7 +207,7 @@ cargo test
 
 ### Release
 
-Releases are cut from `main` with a clean working tree. The release task bumps the version when given, commits, pushes `main`, and pushes the tag. GitHub Actions then builds the platform binaries and creates the GitHub release with:
+Releases are cut from `main` with a clean working tree. The release task bumps the version when given, commits, pushes `main`, and pushes the tag. GitHub Actions then builds the platform binaries, creates the GitHub release, and publishes the crate to crates.io. The release assets are:
 
 - `webpage-cli-linux` (x86_64)
 - `webpage-cli-macos` (arm64)
@@ -226,9 +226,12 @@ Requirements:
 - `main` is checked out and there are no uncommitted changes
 - you have push access to `origin`
 - GitHub Actions is enabled for the repository
+- the `CARGO_REGISTRY_TOKEN` repository secret contains a crates.io API token with publish access
 
 If the release workflow fails, fix it on `main` and re-run it for the existing tag:
 
 ```shell
 gh workflow run release.yml -f tag=v2.0.4
 ```
+
+The crates.io step skips versions that are already published, so re-running the workflow for an existing tag is safe.
