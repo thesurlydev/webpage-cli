@@ -1,0 +1,70 @@
+[tools]
+rust = "latest"
+gh = "latest"
+jq = "latest"
+
+[tasks.build]
+description = "Build the release binary"
+run = "cargo build --release"
+
+[tasks.test]
+description = "Run the tests"
+run = "cargo test"
+
+[tasks.release]
+description = "Tag and publish a GitHub release (optionally bumping to VERSION first)"
+usage = 'arg "[version]" help="New version, e.g. 2.1.0. Defaults to the version in Cargo.toml"'
+run = '''
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo="thesurlydev/webpage-cli"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "working tree is not clean" >&2
+  exit 1
+fi
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+if [ "$branch" != "main" ]; then
+  echo "releases must be cut from main, currently on $branch" >&2
+  exit 1
+fi
+
+current="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+version="${usage_version:-$current}"
+tag="v${version}"
+
+if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+  echo "tag ${tag} already exists" >&2
+  exit 1
+fi
+
+if [ "$version" != "$current" ]; then
+  perl -pi -e "s/^version = \".*\"/version = \"${version}\"/ and \$done++ unless \$done" Cargo.toml
+  cargo check --quiet
+  git add Cargo.toml Cargo.lock
+  git commit -m "chore: release ${tag}"
+fi
+
+cargo test --quiet
+cargo build --release
+
+target="$(rustc -vV | sed -n 's/^host: //p')"
+name="webpage-cli-${tag}-${target}"
+dist="target/dist"
+rm -rf "$dist"
+mkdir -p "$dist/$name"
+cp target/release/webpage-cli README.md LICENSE "$dist/$name/"
+tar -C "$dist" -czf "$dist/$name.tar.gz" "$name"
+(cd "$dist" && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
+
+git tag -a "$tag" -m "$tag"
+git push origin main "$tag"
+
+gh release create "$tag" \
+  --repo "$repo" \
+  --title "$tag" \
+  --generate-notes \
+  "$dist/$name.tar.gz" "$dist/$name.tar.gz.sha256"
+'''
