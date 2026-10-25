@@ -176,3 +176,51 @@ Results in:
   }
 }
 ```
+
+## Development
+
+Requires Rust (2024 edition). The [mise](https://mise.jdx.dev/) tasks are shortcuts for the equivalent Cargo commands.
+
+### Build
+
+```shell
+mise run build
+```
+
+or directly with Cargo:
+
+```shell
+cargo build --release
+```
+
+### Test
+
+```shell
+mise run test
+```
+
+or directly with Cargo:
+
+```shell
+cargo test
+```
+
+### Release
+
+Releases are cut from `main` with a clean working tree. The release task runs the tests, builds the release binary, packages it with the README and license into a tarball plus checksum, pushes `main` and the tag to `origin`, and creates the GitHub release.
+
+```shell
+# Release the version currently in Cargo.toml
+mise run release
+
+# Bump the version first, then release
+mise run release 2.1.0
+```
+
+Requirements:
+
+- `main` is checked out and there are no uncommitted changes
+- `gh` is authenticated (`gh auth status`)
+- you have push access to `origin`
+
+The tarball is built for the host target only, so the artifact name includes the target triple (for example `webpage-cli-v2.0.2-aarch64-apple-darwin.tar.gz`).
