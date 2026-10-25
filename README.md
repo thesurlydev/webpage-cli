@@ -207,20 +207,28 @@ cargo test
 
 ### Release
 
-Releases are cut from `main` with a clean working tree. The release task runs the tests, builds the release binary, packages it with the README and license into a tarball plus checksum, pushes `main` and the tag to `origin`, and creates the GitHub release.
+Releases are cut from `main` with a clean working tree. The release task bumps the version when given, commits, pushes `main`, and pushes the tag. GitHub Actions then builds the platform binaries and creates the GitHub release with:
+
+- `webpage-cli-linux` (x86_64)
+- `webpage-cli-macos` (arm64)
+- `webpage-cli-windows` (x86_64)
 
 ```shell
 # Release the version currently in Cargo.toml
 mise run release
 
 # Bump the version first, then release
-mise run release 2.1.0
+mise run release 2.0.4
 ```
 
 Requirements:
 
 - `main` is checked out and there are no uncommitted changes
-- `gh` is authenticated (`gh auth status`)
 - you have push access to `origin`
+- GitHub Actions is enabled for the repository
 
-The tarball is built for the host target only, so the artifact name includes the target triple (for example `webpage-cli-v2.0.2-aarch64-apple-darwin.tar.gz`).
+If the release workflow fails, fix it on `main` and re-run it for the existing tag:
+
+```shell
+gh workflow run release.yml -f tag=v2.0.4
+```

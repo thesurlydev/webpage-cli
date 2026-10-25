@@ -12,7 +12,7 @@ description = "Run the tests"
 run = "cargo test"
 
 [tasks.release]
-description = "Tag and publish a GitHub release (optionally bumping to VERSION first)"
+description = "Tag and push a release; GitHub Actions builds and publishes the binaries"
 usage = 'arg "[version]" help="New version, e.g. 2.1.0. Defaults to the version in Cargo.toml"'
 run = '''
 #!/usr/bin/env bash
@@ -48,23 +48,11 @@ if [ "$version" != "$current" ]; then
 fi
 
 cargo test --quiet
-cargo build --release
 
-target="$(rustc -vV | sed -n 's/^host: //p')"
-name="webpage-cli-${tag}-${target}"
-dist="target/dist"
-rm -rf "$dist"
-mkdir -p "$dist/$name"
-cp target/release/webpage-cli README.md LICENSE "$dist/$name/"
-tar -C "$dist" -czf "$dist/$name.tar.gz" "$name"
-(cd "$dist" && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
-
+git push origin main
 git tag -a "$tag" -m "$tag"
-git push origin main "$tag"
+git push origin "$tag"
 
-gh release create "$tag" \
-  --repo "$repo" \
-  --title "$tag" \
-  --generate-notes \
-  "$dist/$name.tar.gz" "$dist/$name.tar.gz.sha256"
+echo "Pushed ${tag}. GitHub Actions is building the release:"
+echo "https://github.com/${repo}/releases/tag/${tag}"
 '''
